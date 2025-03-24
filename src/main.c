@@ -1,64 +1,70 @@
-#include <malloc.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <gccore.h>
 #include <wiiuse/wpad.h>
 
 static void *xfb = NULL;
 static GXRModeObj *rmode = NULL;
 
-void draw_square_2d(f32 x, f32 y, f32 size) {
-    GX_Begin(GX_QUADS, GX_VTXFMT0, 4);
+//---------------------------------------------------------------------------------
+void __crtmain() {
+//---------------------------------------------------------------------------------
 
-    GX_Position2f32(x - size, y - size); GX_Color4u8(255, 255, 255, 255);
-    GX_Position2f32(x + size, y - size); GX_Color4u8(255, 255, 255, 255);
-    GX_Position2f32(x + size, y + size); GX_Color4u8(255, 255, 255, 255);
-    GX_Position2f32(x - size, y + size); GX_Color4u8(255, 255, 255, 255);
+	// Initialise the video system
+	VIDEO_Init();
 
-    GX_End();
-}
+	// This function initialises the attached controllers
+	WPAD_Init();
 
-int __crtmain(){
-    VIDEO_Init();
-    WPAD_Init();
+	// Obtain the preferred video mode from the system
+	// This will correspond to the settings in the Wii menu
+	rmode = VIDEO_GetPreferredMode(NULL);
 
-    rmode = VIDEO_GetPreferredMode(NULL);
-    xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
-    VIDEO_Configure(rmode);
-    VIDEO_SetNextFramebuffer(xfb);
-    VIDEO_SetBlack(FALSE);
-    VIDEO_Flush();
-    VIDEO_WaitVSync();
+	// Allocate memory for the display in the uncached region
+	xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
 
-    void *gp_fifo = MEM_K0_TO_K1(memalign(32, 256 * 1024));
-    memset(gp_fifo, 0, 256 * 1024);
-    GX_Init(gp_fifo, 256 * 1024);
-    GX_SetViewport(0, 0, rmode->fbWidth, rmode->efbHeight, 0, 1);
-    GX_InvalidateTexAll();
+	// Initialise the console, required for printf
+	console_init(xfb,20,20,rmode->fbWidth,rmode->xfbHeight,rmode->fbWidth*VI_DISPLAY_PIX_SZ);
 
-    Mtx44 perspective;
-    guOrtho(perspective, 0, rmode->efbHeight, 0, rmode->fbWidth, 0, 1);
-    GX_LoadProjectionMtx(perspective, GX_ORTHOGRAPHIC);
+	// Set up the video registers with the chosen mode
+	VIDEO_Configure(rmode);
 
-    GX_SetBlendMode(GX_BM_BLEND, GX_BL_SRCALPHA, GX_BL_INVSRCALPHA, GX_LO_CLEAR);
-    GX_SetColorUpdate(GX_TRUE);
-    GX_SetAlphaUpdate(GX_TRUE);
+	// Tell the video hardware where our display memory is
+	VIDEO_SetNextFramebuffer(xfb);
 
-    while (1) {
-        WPAD_ScanPads();
+	// Make the display visible
+	VIDEO_SetBlack(false);
 
-        if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME) break;
+	// Flush the video register changes to the hardware
+	VIDEO_Flush();
 
-        GX_SetCopyClear((GXColor){0, 0, 0, 255}, 0x00FFFFFF);
+	// Wait for Video setup to complete
+	VIDEO_WaitVSync();
+	if(rmode->viTVMode&VI_NON_INTERLACE) VIDEO_WaitVSync();
 
-        GX_ClearVtxDesc();
-        GX_SetVtxDesc(GX_VA_POS, GX_DIRECT);
-        GX_SetVtxDesc(GX_VA_CLR0, GX_DIRECT);
 
-        draw_square_2d(rmode->fbWidth / 2, rmode->efbHeight / 2, 50.0f);
+	// The console understands VT terminal escape codes
+	// This positions the cursor on row 2, column 0
+	// we can use variables for this with format codes too
+	// e.g. printf ("\x1b[%d;%dH", row, column );
+	printf("\x1b[2;0H");
 
-        GX_DrawDone();
-        GX_CopyDisp(xfb, GX_TRUE);
-        VIDEO_WaitVSync();
-    }
 
-    return 0;
+	printf("Hello World!");
+
+	while(1) {
+
+		// Call WPAD_ScanPads each loop, this reads the latest controller states
+		WPAD_ScanPads();
+
+		// WPAD_ButtonsDown tells us which buttons were pressed in this loop
+		// this is a "one shot" state which will not fire again until the button has been released
+		u32 pressed = WPAD_ButtonsDown(0);
+
+		// We return to the launcher application via exit
+		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
+
+		// Wait for the next frame
+		VIDEO_WaitVSync();
+	}
 }
