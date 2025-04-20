@@ -1,11 +1,7 @@
 #include <grrlib.h>
 #include <wiiuse/wpad.h>
 
-bool dvmInitDefault() {
-	return true;
-}
-
-int __crtmain(int argc, char **argv) {
+int main() {
     GRRLIB_Init();
     
     WPAD_Init();

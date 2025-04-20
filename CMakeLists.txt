@@ -33,15 +33,18 @@ set(CMAKE_EXE_LINKER_FLAGS "${OGC_STANDARD_LIBRARIES} -T${DEVKITPPC}/powerpc-eab
 
 # GRRLIB
 set(GRRLIB_DIR "${CMAKE_SOURCE_DIR}/vendor/GRRLIB")
-FetchContent_Declare(
-    dep_grrlib
-    GIT_REPOSITORY https://github.com/GRRLIB/GRRLIB.git
-    GIT_TAG v4.6.0
-    SOURCE_DIR ${GRRLIB_DIR}
-)
+set(GRRLIB_VERSION "4.6.0")
+set(GRRLIB_GIT "https://github.com/GRRLIB/GRRLIB.git")
+FetchContent_Declare(dep_grrlib GIT_REPOSITORY "${GRRLIB_GIT}" GIT_TAG "v${GRRLIB_VERSION}" SOURCE_DIR ${GRRLIB_DIR})
 FetchContent_MakeAvailable(dep_grrlib)
 
+# Entrypoint
+set(ENTRYPOINT "${CMAKE_CURRENT_BINARY_DIR}/crt0.c")
+if(NOT EXISTS "${ENTRYPOINT}")
+    file(WRITE "${ENTRYPOINT}" "int main();char dvmInitDefault(){return 1;}int __crtmain(){return main();}")
+endif()
+
 file(GLOB_RECURSE SOURCES "src/*.c")
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} "${SOURCES};${ENTRYPOINT}")
 target_link_libraries(${PROJECT_NAME} grrlib freetype png z bz2)
 ogc_create_dol(${PROJECT_NAME})
