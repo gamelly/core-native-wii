@@ -178,6 +178,7 @@ endif()
 # Entrypoint
 set(ENTRYPOINT "${CMAKE_CURRENT_BINARY_DIR}/crt0.c")
 if(NOT EXISTS "${ENTRYPOINT}")
+    #/opt/devkitpro/devkitPPC/powerpc-eabi/lib/crtmain.o
     file(WRITE "${ENTRYPOINT}" "int main();char dvmInitDefault(){return 1;}int __crtmain(){return main();}")
 endif()
 
