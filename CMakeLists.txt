@@ -167,6 +167,21 @@ if(DEFINED GAME AND GAME_LENGTH)
     )
 endif()
 
+# Font
+set(FONT_DIR "${CMAKE_SOURCE_DIR}/vendor/font")
+set(FONT_DOWNLOAD "https://github.com/gamelly/fonts/archive/refs/heads/main.tar.gz")
+if(NOT EXISTS "${FONT_DIR}")
+    FetchContent_Populate(dep_font URL ${FONT_DOWNLOAD} SOURCE_DIR ${FONT_DIR})
+    set(FONT_NOTO "${FONT_DIR}/Noto_Sans")
+    execute_process(
+        WORKING_DIRECTORY ${ENGINE_DIR}
+        COMMAND ${LUAC} ${ENGINE_CLI} fs-xxd-i --const --name notosans_regular_ttf
+            ${FONT_NOTO}/NotoSans-Regular.ttf
+            ${FONT_NOTO}/notosans_regular.h 
+        COMMAND_ERROR_IS_FATAL ANY
+    )
+endif()
+
 # Lua perfomance
 if(LUA_OPTMIZE)
     execute_process(

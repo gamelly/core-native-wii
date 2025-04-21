@@ -1,6 +1,11 @@
+#include "font/Noto_Sans/notosans_regular.h"
+
 #include "zeebo.h"
 
 static uint32_t current_color = 0xFFFFFFFF;
+static uint8_t font_size = 5;
+static uint8_t font_size_previous = 8;
+static GRRLIB_ttfFont *font_ttf;
 
 static int native_draw_start(lua_State *L)
 {
@@ -69,35 +74,44 @@ static int native_text_mock(lua_State *L)
 
 static int native_text_print(lua_State *L)
 {
-    uint8_t x = luaL_checknumber(L, 1);
-    uint8_t y = luaL_checknumber(L, 2);
+    float x = luaL_checknumber(L, 1);
+    float y = luaL_checknumber(L, 2);
     const char* text = luaL_checkstring(L, 3);
+    GRRLIB_PrintfTTF(x, y, font_ttf, text, font_size, current_color);
     lua_settop(L, 0);
     return 2;
 }
 
 static int native_text_mensure(lua_State *L)
 {
+    const char* text = luaL_checkstring(L, 1);
     lua_settop(L, 0);
-    lua_pushnumber(L, 1);
-    lua_pushnumber(L, 1);
+    lua_pushnumber(L, GRRLIB_WidthTTF(font_ttf, text, font_size));
+    lua_pushnumber(L, font_size);
     return 2;
 }
 
 static int native_text_font_size(lua_State *L)
 {
+    font_size_previous = font_size;
+    font_size = luaL_checknumber(L, 1);
     lua_settop(L, 0);
     return 0;
 }
 
 static int native_text_font_previous(lua_State *L)
 {
+    uint8_t font_size_old = font_size;
+    font_size = font_size_previous;
+    font_size_previous = font_size_old;
     lua_settop(L, 0);
     return 0;
 }
 
 void glyL_openlibs(lua_State* L)
 {
+    font_ttf = GRRLIB_LoadTTF(notosans_regular_ttf, notosans_regular_ttf_len);
+
     int i = 0;
     static const luaL_Reg lib[] = {
         {"native_draw_start", native_draw_start},
